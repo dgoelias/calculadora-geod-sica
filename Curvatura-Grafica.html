@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Geodesia</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        function calcularGeodesia() {
+            const R = 6371000;
+
+            let e1 = parseFloat(document.getElementById("e1").value);
+            let n1 = parseFloat(document.getElementById("n1").value);
+            let z1 = parseFloat(document.getElementById("z1").value);
+            let e2 = parseFloat(document.getElementById("e2").value);
+            let n2 = parseFloat(document.getElementById("n2").value);
+            let z2 = parseFloat(document.getElementById("z2").value);
+
+            if (isNaN(e1) || isNaN(n1) || isNaN(z1) || isNaN(e2) || isNaN(n2) || isNaN(z2)) {
+                alert("Por favor, ingrese valores numéricos válidos en todos los campos.");
+                return;
+            }
+
+            let d = Math.sqrt(Math.pow(e2 - e1, 2) + Math.pow(n2 - n1, 2));
+            let h_curvatura = (Math.pow(d, 2)) / (2 * R);
+            let diferencia_elevacion = z2 - z1;
+
+            document.getElementById("resultado").innerHTML = 
+                `Distancia entre los puntos: ${d.toFixed(2)} metros <br>
+                 Caída de la curvatura terrestre: ${h_curvatura.toFixed(6)} metros <br>
+                 Diferencia de elevación: ${diferencia_elevacion.toFixed(2)} metros`;
+
+            // Crear puntos intermedios para simular la curvatura
+            const numPuntos = 20;
+            let etiquetas = [];
+            let elevaciones = [];
+            let curva = [];
+
+            for (let i = 0; i <= numPuntos; i++) {
+                let t = i / numPuntos;
+                let elevacionInterpolada = z1 + t * (z2 - z1);
+                let x = t * d;
+                let h = Math.pow(x, 2) / (2 * R);
+                etiquetas.push((t * d).toFixed(0));
+                elevaciones.push(elevacionInterpolada);
+                curva.push(elevacionInterpolada - h);
+            }
+
+            const ctx = document.getElementById('graficoPerfil').getContext('2d');
+            if (window.perfilChart) window.perfilChart.destroy();
+
+            window.perfilChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: etiquetas,
+                    datasets: [
+                        {
+                            label: 'Perfil del terreno',
+                            data: elevaciones,
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.3
+                        },
+                        {
+                            label: 'Curvatura terrestre',
+                            data: curva,
+                            borderDash: [5, 5],
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.3
+                        }
+                    ]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: 'Altura (m)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Distancia (m)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</head>
+<body>
+    <h2>Calculadora de Geodesia</h2>
+    <label>Coordenada Este 1: <input type="number" id="e1"></label><br>
+    <label>Coordenada Norte 1: <input type="number" id="n1"></label><br>
+    <label>Elevación 1: <input type="number" id="z1"></label><br>
+    <label>Coordenada Este 2: <input type="number" id="e2"></label><br>
+    <label>Coordenada Norte 2: <input type="number" id="n2"></label><br>
+    <label>Elevación 2: <input type="number" id="z2"></label><br>
+    <button onclick="calcularGeodesia()">Calcular</button>
+    <h3>Resultado:</h3>
+    <p id="resultado"></p>
+    <canvas id="graficoPerfil" width="600" height="300"></canvas>
+</body>
+</html>
